@@ -1,30 +1,76 @@
-#! /bin/bash
+#!/bin/bash
 
-##########################################################################
-# Please change these 2 variables and make sure the script is executable #
-# Also make sure to run it from your signing key directory               #        
-##########################################################################
+################################################################################
+# Please change these variables and make sure the script is executable         #
+# Also make sure to run it from your signing key directory                     #
+################################################################################
 
-name=mike                 # Change this with your name (example: jenny)
-keyPath=mike-voting.skey  # Change this with your own signing key (example: jenny-voting.skey)
+defaultName="mike" # Default name of the output file (e.g. mike.witness)
+defaultKeyPath="mike.voting.skey" # Default path of your signing key file
+defaultTxBodyFile="body.json" # Default expected name of the transaction body file
+defaultHotCredential="07e0eb70a1cfd5de084b5fcc8a9b28ff7772282b57e760d692c75bde" # CAC hot credential hash for validation
 
-
-###########################################
-# Do not change anything below this line #
-#########################################
-
-# Variables
-txBodyFile=body.json
-hotCredentialHash="07e0eb70a1cfd5de084b5fcc8a9b28ff7772282b57e760d692c75bde" # CAC hot credential hash for validation
+################################################################################
+# Do not change anything below this line                                       #
+################################################################################
 
 # Colors for now and future use
+#BLACK='\033[0;30m'
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
-BLUE='\033[0;34m'
+#BLUE='\033[0;34m'
 MAGENTA='\033[0;35m'
 CYAN='\033[0;36m'
+WHITE='\033[0;37m'
+#BRIGHTBLACK='\033[0;30;1m'
+#BRIGHTRED='\033[0;31;1m'
+#BRIGHTGREEN='\033[0;32;1m'
+#BRIGHTYELLOW='\033[0;33;1m'
+#BRIGHTBLUE='\033[0;34;1m'
+#BRIGHTMAGENTA='\033[0;35;1m'
+#BRIGHTCYAN='\033[0;36;1m'
+BRIGHTWHITE='\033[0;37;1m'
 NC='\033[0m'
+
+# Usage Instructions
+show_usage() {
+  echo -e "
+${BRIGHTWHITE}A command line script to confirm a Cardano Constitutional Committee transaction
+and generate a witness file.${NC}
+
+${BRIGHTWHITE}Usage:${NC} ${GREEN}$(basename $0)${NC} ${BRIGHTWHITE}<txBodyFile> <keyPath> <txName> [credentialHash]${NC}
+
+${BRIGHTWHITE}Arguments:${NC}
+${WHITE}<txBodyFile>     ${NC} The path to the transaction body file to validate. ${MAGENTA}Required.
+${WHITE}<keyPath>        ${NC} The path to the signing key to use for the witness. ${MAGENTA}Required.
+${WHITE}<txName>         ${NC} The name to use for the output witness file. ${MAGENTA}Required.
+${WHITE}[credentialHash] ${NC} The CC credential hash to validate against. ${YELLOW}Optional
+
+${BRIGHTWHITE}Examples:${NC}
+
+${GREEN}$(basename $0)${NC} body.json adam.voter.skey vote.240902 07e0eb70a1cfd5de084b5fcc8a9b28ff7772282b57e760d692c75bde
+${GREEN}$(basename $0)${NC} body.json ~/keys/adam.delegation.skey delegation.240827
+${GREEN}$(basename $0)${NC} ~/txns/vote.241201.json ~/keys/jenny.voter.skey vote.241201 07e0eb70a1cfd5de084b5fcc8a9b28ff7772282b57e760d692c75bde"
+}
+
+WIDTH=$(tput cols)
+PAD=$(("$(("$WIDTH" - 90))" / 2))
+if [ "$PAD" -gt 12 ]; then
+PADDING=$(printf "%12s" "")
+else
+PADDING=""
+fi
+
+if [ $# -lt 3 ] && [ $# -gt 0 ]; then
+  show_usage
+  exit 1;
+fi
+
+txBodyFile="${1:-$defaultTxBodyFile}"
+keyPath="${2:-$defaultKeyPath}"
+name="${3:-$defaultName}"
+hotCredentialHash="${4:-$defaultHotCredential}"
 
 # Witness transaction function
 witness_tx() {
@@ -35,6 +81,7 @@ witness_tx() {
         --out-file $name.witness
 }
 
+# Process transaction information
 tx_info() {
     if [ -f "$txBodyFile" ] && grep -q '"type": "Unwitnessed Tx ConwayEra"' "$txBodyFile"; then
         vote_info=$(cardano-cli conway transaction view --tx-body-file $txBodyFile 2>/dev/null | grep -A10 '"voters":')
@@ -52,7 +99,7 @@ tx_info() {
             scriptValidation="\n${RED}The credential validation failed${NC}"
         fi
     else
-        echo -e "${RED}The script cannot find the transaction body file (${YELLOW}body.json${RED}). Please move it to the same directory as your key and make sure it has readable permissions${NC}"
+        echo -e "${RED}The script cannot find the transaction body file (${YELLOW}body.json${RED}).\r\nPlease move it to the same directory as your key and make sure it has readable permissions${NC}"
         exit 1
     fi
     if [ "$keyPath" = "mike-voting.skey" ] || [ "$name" = "mike" ]; then
@@ -72,47 +119,45 @@ tx_info() {
     fi
 }
 
+# Print a pretty image of Grace!
 generate_image() {    
-echo -e "${WHITE} 
-
-                                           .^!J5GB#&&&@@@@&&&&#BPY7~:.                                                                                                                                 
-                                      .^?G#@@@@@@@@@@@@@@@@@@@@@@@@@@@@&BY!.                                                                                                                            
-                                  .!P&@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@&BJ:                                                                                                                        
-                               :J#@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@&G~                                                                                                                     
-                            .J&@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@G~                                                                                                                  
-                          ~B@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@&J.                                                                 
-                        !&@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@5.                                                           
-                      ~&@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@&&#####&&@@@@@@@@@@@@@@@@@@@@@Y                                  
-                    .G@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@&BY!:.           .^7P&@@@@@@@@@@@@@@@@@!                                
-                   !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@&G!.                      .J&@@@@@@@@@@@@@@@G                                
-                  5@@@@@@@@@@@@@@@@@@@@@@@@@@@@@P^                             !&@@@@@@@@@@@@@@&:                         
-                 B@@@@@@@@@@@@@@@@@@@@@@@@@@@&7                                  G@@@@@@@@@@@@@@@^                           
-                B@@@@@@@@@@@@@@@@@@@@@@@@@@&!                  .                  B@@@@@@@@@@@@@@@^                                                                                                     
-               G@@@@@@@@@@@@@@@@@@@@@@@&&#?                  7@@@B                .@@@@@@@@@@@@@@@@.                            
-              7@@@@@@@@@@@@@@@@@@#P?^.                       J@@@&                 &@@@@@@@@@@@@@@@&                                 
-             .@@@@@@@@@@@@@@@&5^                              .:.                   ^Y&@@@@@@@@@@@@@J                              
-             Y@@@@@@@@@@@@@&!                                      .^!?YY555YYYJJ?7^   ?@@@@@@@@@@@@@                                  
-             &@@@@@@@@@@@@5                                    ~5&@@@@@@@@@@@@@@@@@@@:  #@@@@@@@@@@@@7                             
-            ^@@@@@@@@@@@@@Y...                              .P@@@@@@@@@@@@@@@@@@@&#P~  ^@@@@@@@@@@@@@B                       
-            7@@@@@@@@@@@@@@@@@&#Y:                          ^G@@@@@@@@@@@&BY7^.     .~G@@@@@@@@@@@@@@&                                                                                                  
-            J@@@@@@@@@@@@@@@@@@@@@P              ..          :@@@@@@@B?:    .:~?5B&@@@@@@@@@@@@@@@@@@@                                
-            J@@@@@@@@@@@@@@@@@@@@@@.             B.         ^@@@@&5^        #@@@@@@@@@@@@@@@@@@@@@@@@@                                
-            !@@@@@@@@@@@@@@@@@@@@@@.            :@        :G@@@#~           .@@@@@@@@@@@@@@@@@@@@@@@@&                                 
-            .@@@@@@@@@@@@@@@@@@@@@@.            :@:     ~B@@@&^  :P7         G@@@@@@@@@@@@@@@@@@@@@@@G                             
-             !@@@@@@@@@@@@@@@@@@@@@#              ~@@@@@@@@!  ~@@@@@@@@P^   .@@@@@@@@@@@@@@@@@@@@@@@&                                  
-              #@@@@@@@@@@@@@@@@@@@@@!             ~@@@@@@@5  ^@@@@@@@@@@@@##@@@@@@@@@@@@@@@@@@@@@@@@~                        
-              :@@@@@@@@@@@@@@@@@@@@@@.            .@@@@@@@.  #@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@P                                                                                                    
-               !@@@@@@@@@@@@@@@@@@@@@&.            G@@@@@@   @@@@@@@&G555PB&@@@@@@@@@@@@@@@@@@@@@@#                                                                                                     
-                !@@@@@@@@@@@@@@@@@@@B!             .@@@@@@.  #@@@B!.        :5@@@@@@@@@@@@@@@@@@@G                                                                                                      
-                  ?#@@@@@@@@@@@@@@P:                ^@@@@@G  :&P:              7&@@@@@@@@@@@@@&P:                                                                                                       
-                    .^75GB####GY~                    .5B###:                     :?PB####BPJ~. 
-                    
-                       ##################################################################
-                       #            Welcome to the CAC offline voter script             #
-                       ##################################################################
-
-
-                                                                                                                    ${NC}"
+echo -e "${CYAN}
+${PADDING}                               .^!J5GB#&&&@@@@&&&&#BPY7~:.
+${PADDING}                          .^?G#@@@@@@@@@@@@@@@@@@@@@@@@@@@@&BY!.
+${PADDING}                      .!P&@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@&BJ:
+${PADDING}                   :J#@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@&G~
+${PADDING}                .J&@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@G~
+${PADDING}              ~B@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@&J.
+${PADDING}            !&@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@5.
+${PADDING}          ~&@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@&&#####&&@@@@@@@@@@@@@@@@@@@@@Y
+${PADDING}        .G@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@&BY!:.           .^7P&@@@@@@@@@@@@@@@@@!
+${PADDING}       !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@&G!.                      .J&@@@@@@@@@@@@@@@G
+${PADDING}      5@@@@@@@@@@@@@@@@@@@@@@@@@@@@@P^                             !&@@@@@@@@@@@@@@&:
+${PADDING}     B@@@@@@@@@@@@@@@@@@@@@@@@@@@&7                                  G@@@@@@@@@@@@@@@^
+${PADDING}    B@@@@@@@@@@@@@@@@@@@@@@@@@@&!                  ${WHITE}.${CYAN}                  B@@@@@@@@@@@@@@@^
+${PADDING}   G@@@@@@@@@@@@@@@@@@@@@@@&&#?                  ${WHITE}7@@@B${CYAN}                .@@@@@@@@@@@@@@@@.
+${PADDING}  7@@@@@@@@@@@@@@@@@@#P?^.                       ${WHITE}J@@@&${CYAN}                 &@@@@@@@@@@@@@@@&
+${PADDING} .@@@@@@@@@@@@@@@&5^                              ${WHITE}.:.${CYAN}                   ^Y&@@@@@@@@@@@@@J
+${PADDING} Y@@@@@@@@@@@@@&!                                      ${WHITE}.^!?YY555YYYJJ?7^${CYAN}   ?@@@@@@@@@@@@@
+${PADDING} &@@@@@@@@@@@@5                                    ${WHITE}~5&@@@@@@@@@@@@@@@@@@@:${CYAN}  #@@@@@@@@@@@@7
+${PADDING}^@@@@@@@@@@@@@Y...                              ${WHITE}.P@@@@@@@@@@@@@@@@@@@&#P~${CYAN}  ^@@@@@@@@@@@@@B
+${PADDING}7@@@@@@@@@@@@@@@@@&#Y:                          ${WHITE}^G@@@@@@@@@@@&BY7^.${CYAN}     .~G@@@@@@@@@@@@@@&
+${PADDING}J@@@@@@@@@@@@@@@@@@@@@P              ${WHITE}..          :@@@@@@@B?:${CYAN}    .:~?5B&@@@@@@@@@@@@@@@@@@@
+${PADDING}J@@@@@@@@@@@@@@@@@@@@@@.             ${WHITE}B.         ^@@@@&5^${CYAN}        #@@@@@@@@@@@@@@@@@@@@@@@@@
+${PADDING}!@@@@@@@@@@@@@@@@@@@@@@.            ${WHITE}:@        :G@@@#~${CYAN}           .@@@@@@@@@@@@@@@@@@@@@@@@&
+${PADDING}.@@@@@@@@@@@@@@@@@@@@@@.            ${WHITE}:@:     ~B@@@&^${CYAN}  :P7         G@@@@@@@@@@@@@@@@@@@@@@@G
+${PADDING} !@@@@@@@@@@@@@@@@@@@@@#              ${WHITE}~@@@@@@@@!${CYAN}  ~@@@@@@@@P^   .@@@@@@@@@@@@@@@@@@@@@@@&
+${PADDING}  #@@@@@@@@@@@@@@@@@@@@@!             ${WHITE}~@@@@@@@5${CYAN}  ^@@@@@@@@@@@@##@@@@@@@@@@@@@@@@@@@@@@@@~
+${PADDING}  :@@@@@@@@@@@@@@@@@@@@@@.            ${WHITE}.@@@@@@@.${CYAN}  #@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@P
+${PADDING}   !@@@@@@@@@@@@@@@@@@@@@&.            ${WHITE}G@@@@@@${CYAN}   @@@@@@@&G555PB&@@@@@@@@@@@@@@@@@@@@@@#
+${PADDING}    !@@@@@@@@@@@@@@@@@@@B!             ${WHITE}.@@@@@@.${CYAN}  #@@@B!.        :5@@@@@@@@@@@@@@@@@@@G
+${PADDING}      ?#@@@@@@@@@@@@@@P:                ${WHITE}^@@@@@G${CYAN}  :&P:              7&@@@@@@@@@@@@@&P:
+${PADDING}        .^75GB####GY~                    ${WHITE}.5B###:${CYAN}                     :?PB####BPJ~.
+${PADDING}
+${PADDING}            ${WHITE}##################################################################
+${PADDING}            #            Welcome to the CAC offline voter script             #
+${PADDING}            ##################################################################
+${NC}"
 }
 main() {
     generate_image
