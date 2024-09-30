@@ -1,6 +1,7 @@
 #!/bin/bash
 
 ################################################################################
+# This script is compatible only with the cardano-cli version 9.4.1.0 or newer #
 # Please change these variables and make sure the script is executable         #
 # Also make sure to run it from your signing key directory                     #
 ################################################################################
@@ -88,7 +89,7 @@ tx_info() {
     exit 1
   fi
   if [ -f "$txBodyFile" ] && grep -q '"type": "Unwitnessed Tx ConwayEra"' "$txBodyFile"; then
-    vote_info=$(cardano-cli conway transaction view --tx-body-file "$txBodyFile" 2>/dev/null | grep -A10 '"voters":')
+    vote_info=$(cardano-cli debug transaction view --tx-body-file "$txBodyFile" 2>/dev/null | grep -A10 '"voters":')
     committee_script_hash=$(echo "$vote_info" | grep '"committee-scriptHash-' | sed 's/.*"committee-scriptHash-\([^"]*\)".*/\1/' | tr -d '[:space:]')
     govID=$(echo "$vote_info" | sed -n '3p' | tr -d '[:space:]"' | cut -c 1-64)
     url=$(echo "$vote_info" | grep '"url":' | sed 's/.*"url": *"\([^"]*\)".*/\1/')
