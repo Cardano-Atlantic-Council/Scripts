@@ -6,10 +6,10 @@
 # Also make sure to run it from your signing key directory                     #
 ################################################################################
 
-defaultName="changeMe" # Default name of the output file (e.g. mike.witness)
+defaultName="changeMe" # Default name for the output file (e.g. mike)
 defaultKeyPath="change.voting.skey" # Default path of your signing key file
 defaultTxBodyFile="body.json" # Default expected name of the transaction body file
-defaultHotCredential="07e0eb70a1cfd5de084b5fcc8a9b28ff7772282b57e760d692c75bde" # CAC hot credential hash for validation
+defaultHotCredential="changeMe" # hot credential hash for validation (e.g. 07e0eb70a1cfd5de084b5fcc8a9b28ff7772282b57e760d692c75bde)
 
 ################################################################################
 # Do not change anything below this line                                       #
