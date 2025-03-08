@@ -53,6 +53,7 @@ show_help() {
     echo -e "${BRIGHTYELLOW}Important: This script must be used offline to ensure the security of your transactions.${NC}"
     echo -e "${BRIGHTGREEN}To use this script, you will need to provide the following information:${NC}"
     echo -e "  - ${WHITE}RETURN_ADDRESS variable (must be changed in the script to your wallet address for the transaction)${NC}"
+    echo -e "  - ${WHITE}Your protocol parameters file (${BRIGHTYELLOW}pparams.json${WHITE})${NC}"
     echo -e "  - ${WHITE}Your voters hash (Which will be set as default voters hash)${NC}"
     echo -e "  - ${WHITE}Payment UTXO you want to spend with its index.${NC}"
     echo -e "  - ${WHITE}The amount of LOVELACE in your payment UTXO.${NC}"
@@ -180,6 +181,7 @@ transaction_build_raw() {
     # Transaction Variables
     TRANSACTION_FEE=1000000 
     ORCHESTRATOR_ENDING_BALANCE=$(($ORCHESTRATOR_STARTING_BALANCE - $TRANSACTION_FEE))
+    WITNESS=$(( $(grep -c 'required-signer-hash' voterhashes.conf) + 2 ))
 
     # Create transaction draft
     cardano-cli conway transaction build-raw \
@@ -203,7 +205,7 @@ transaction_build_raw() {
       --out-file body.json
 
     # Recalculate the fees
-    TRANSACTION_FEE=$(cardano-cli conway transaction calculate-min-fee --tx-body-file body.json --witness-count 2 --protocol-params-file pparams.json | grep -o '[0-9]\+')
+    TRANSACTION_FEE=$(cardano-cli conway transaction calculate-min-fee --tx-body-file body.json --witness-count ${WITNESS} --protocol-params-file pparams.json | grep -o '[0-9]\+')
     ORCHESTRATOR_ENDING_BALANCE=$(($ORCHESTRATOR_STARTING_BALANCE - $TRANSACTION_FEE))
 
     # create final transaction
