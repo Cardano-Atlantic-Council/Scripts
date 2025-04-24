@@ -82,41 +82,70 @@ witness_tx() {
         --out-file $name.witness
 }
 
-# Process transaction information
+# Filter the needed infos from the Transaction
 tx_info() {
   if [ "$keyPath" = "change.voting.skey" ] || [ "$name" = "changeMe" ]; then
     echo -e "${RED}Please change the ${YELLOW}name${RED} and ${YELLOW}keyPath${RED} variable in the script with your name and the path to your Cardano signing key${NC}"
     exit 1
   fi
   if [ -f "$txBodyFile" ] && grep -q '"type": "Unwitnessed Tx ConwayEra"' "$txBodyFile"; then
-    vote_info=$(cardano-cli debug transaction view --tx-body-file "$txBodyFile" 2>/dev/null | grep -A10 '"voters":')
-    committee_script_hash=$(echo "$vote_info" | grep '"committee-scriptHash-' | sed 's/.*"committee-scriptHash-\([^"]*\)".*/\1/' | tr -d '[:space:]')
-    govID=$(echo "$vote_info" | sed -n '3p' | tr -d '[:space:]"' | cut -c 1-64)
-    url=$(echo "$vote_info" | grep '"url":' | sed 's/.*"url": *"\([^"]*\)".*/\1/')
-    vote_content=$(echo "$vote_info" | grep '"decision":' | sed 's/.*"decision": *"\([^"]*\)".*/\1/')
-    if [ -z "$vote_content" ]; then
-      echo -e "${RED}The transaction is not a vote transaction please check if you have the right transaction body file and try again${NC}"
-      exit 1
-    fi
-    if [ "$committee_script_hash" = "$hotCredentialHash" ]; then
-      scriptValidation="\n${GREEN}The credential validation passed${NC}"
+
+    vote_info=$(cardano-cli debug transaction view --tx-body-file "$txBodyFile" 2>/dev/null)
+    voters_section=$(echo "$vote_info" | grep -A50 '"voters":')
+    script_hash=$(echo "$voters_section" | grep -o "committee-scriptHash-[0-9a-f]\+" | head -n 1 | sed 's/committee-scriptHash-//')
+
+    # Verify the CC-credential
+    if [ "$script_hash" == "$hotCredentialHash" ]; then
+        echo -e "${GREEN}Script Hash: $script_hash (Matches hot credential hash)${NC}"
     else
-      scriptValidation="\n${RED}The credential validation failed${NC}"
+        echo -e "${RED}Script Hash: $script_hash (Does NOT match hot credential hash: $hotCredentialHash)${NC}"
     fi
+    echo ""
+
+    echo -e "\n${CYAN}=== Governance Actions to be Signed ===${NC}\n"
+
+    # List all governance action IDs separately
+    echo "$voters_section" | grep -o "[0-9a-f]\{64\}#[0-9]\+" | while read -r gov_id; do
+        echo -e "${YELLOW}Governance Action: $gov_id${NC}"
+        
+        action_section=$(echo "$voters_section" | grep -A10 "$gov_id")
+    
+        decision=$(echo "$action_section" | grep '"decision":' | head -n 1 | sed 's/.*"decision": "\([^"]*\)".*/\1/')
+        echo -e "${GREEN}Decision: $decision${NC}"
+        
+        url=$(echo "$action_section" | grep '"url":' | head -n 1 | sed 's/.*"url": "\([^"]*\)".*/\1/')
+        echo -e "${WHITE}Anchor URL: $url${NC}"
+        
+        hash=$(echo "$action_section" | grep '"dataHash":' | head -n 1 | sed 's/.*"dataHash": "\([^"]*\)".*/\1/')
+        echo -e "${WHITE}Anchor Hash: $hash${NC}"
+        
+        echo ""
+    done
+
+    echo -e "${CYAN}=== End of Governance Actions ===${NC}\n"
+
+    # Governance actions count
+    total_actions=$(echo "$voters_section" | grep -c "[0-9a-f]\{64\}#[0-9]\+")
+    echo -e "${MAGENTA}Total number of governance actions: $total_actions${NC}\n"
+
+    while true; do
+        read -p "Have you verified all $total_actions governance actions? (yes/no) " verify_response
+        if [[ "$verify_response" == "yes" ]]; then
+            break
+        elif [[ "$verify_response" == "no" ]]; then
+            echo -e "${RED}Signing cancelled. Please verify the governance actions and try again.${NC}"
+            exit 1
+        else
+            echo -e "${RED}Invalid response. Please enter 'yes' or 'no'.${NC}"
+        fi
+    done
   else
     echo -e "${RED}The script cannot find the transaction body file (${BRIGHTWHITE}body.json${RED}).\r\nPlease move it to the same directory as your key and make sure it has readable permissions${NC}"
     exit 1
   fi
 
   if [ -f "$keyPath" ]; then
-    echo -e "${CYAN}Hot Script Hash:${NC} ${committee_script_hash} ${scriptValidation}"
-    if [ "$committee_script_hash" != "$hotCredentialHash" ]; then
-      exit 1
-    fi
-    echo ""
-    echo -e "${CYAN}The governance ID you are voting on is:${NC} ${govID}"
-    echo -e "${CYAN}This governance action justification link is:${NC} ${url}"
-    echo -e "${CYAN}The vote you are casting is:${NC} ${vote_content}"
+    echo -e "${GREEN}${keyPath} detected."
   else
     echo -e "${RED}The script cannot find your signing key, please verify the ${YELLOW}name${RED} and ${YELLOW}keyPath${RED} variable${NC}"
     exit 1
@@ -209,7 +238,7 @@ ${NC}"
 main() {
     generate_image
     tx_info
-    echo -e "\n${YELLOW}Do you agree to sign this transaction? (y/n)${NC}"
+    echo -e "\n${YELLOW}Do you agree to proceed with the signing? (y/n)${NC}"
     read -r response
     if [[ "$response" =~ ^[Yy]$ ]]; then
         witness_tx
