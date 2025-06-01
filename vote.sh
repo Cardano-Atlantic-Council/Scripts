@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ################################################################################
-# This script is compatible only with the cardano-cli version 9.4.1.0 or newer #
+# This script is compatible only with the cardano-cli version 10.7.0.0 or newer #
 # Please change these variables and make sure the script is executable         #
 # Also make sure to run it from your signing key directory                     #
 ################################################################################
@@ -88,7 +88,7 @@ tx_info() {
     echo -e "${RED}Please change the ${YELLOW}name${RED} and ${YELLOW}keyPath${RED} variable in the script with your name and the path to your Cardano signing key${NC}"
     exit 1
   fi
-  if [ -f "$txBodyFile" ] && grep -q '"type": "Unwitnessed Tx ConwayEra"' "$txBodyFile"; then
+  if [ -f "$txBodyFile" ] && grep -q '"type": "Tx ConwayEra"' "$txBodyFile"; then
 
     vote_info=$(cardano-cli debug transaction view --tx-body-file "$txBodyFile" 2>/dev/null)
     voters_section=$(echo "$vote_info" | grep -A50 '"voters":')
