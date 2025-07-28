@@ -91,7 +91,7 @@ tx_info() {
   if [ -f "$txBodyFile" ] && grep -q '"type": "Tx ConwayEra"' "$txBodyFile"; then
 
     vote_info=$(cardano-cli debug transaction view --tx-body-file "$txBodyFile" 2>/dev/null)
-    voters_section=$(echo "$vote_info" | grep -A50 '"voters":')
+    voters_section=$(echo "$vote_info" | grep -A999 '"voters":')
     script_hash=$(echo "$voters_section" | grep -o "committee-scriptHash-[0-9a-f]\+" | head -n 1 | sed 's/committee-scriptHash-//')
 
     # Verify the CC-credential
